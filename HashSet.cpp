@@ -3,6 +3,7 @@
 #include <vector>
 #include <chrono>
 #include <cmath>
+#include <array>
 
 using namespace std;
 using namespace std::chrono;
@@ -83,6 +84,43 @@ struct List
 	
 };
 
+template<class V, size_t D>
+class HashSet
+{
+	array<List<V>, D> buckets;
+
+	static size_t hash(const V value)
+	{
+		size_t h = 0;
+		for (int i = 0; i < sizeof(V); ++i)
+		{
+			uint8_t byte = (value >> (8 * i)) & 0xFF;
+			h += byte;
+			h += (h << 10);
+			h ^= (h >> 6);
+		}
+		h += (h << 3);
+		h ^= (h >> 11);
+		h += (h << 15);
+		return h % D;
+	}
+
+public:
+	void add(const V value)
+	{
+		size_t h = hash(value);
+		List<V>& bucket = buckets[h];
+		bucket.prepend(value);
+	}
+
+	bool contains(const V value)
+	{
+		size_t h = hash(value);
+		List<V>& bucket = buckets[h];
+		return bucket.contains(value);
+	}
+};
+
 template <class T>
 ostream& operator<<(ostream& out, const class Node<T>& node)
 {
@@ -110,29 +148,29 @@ ostream& operator<<(ostream& out, const List<T>& list)
 
 struct Test
 {
-	int mean;
-	int stddev;
+	int a;
+	int b;
 	int n;
 };
 
 int main()
 {
 	vector<Test> tests{
-		{10000000, 100, 1000},
-		{10000000, 100, 10000},
-		{10000000, 100, 100000},
-		{10000000, 1000, 1000},
-		{10000000, 1000, 10000},
-		{10000000, 1000, 100000},
-		{10000000, 10000, 1000},
-		{10000000, 10000, 10000},
-		{10000000, 10000, 100000},
-		{10000000, 100000, 1000},
-		{10000000, 100000, 10000},
-		{10000000, 100000, 100000},
-		{10000000, 1000000, 1000},
-		{10000000, 1000000, 10000},
-		{10000000, 1000000, 100000},
+		{1, 100, 1000},
+		{1, 100, 10000},
+		{1, 100, 100000},
+		{1, 1000, 1000},
+		{1, 1000, 10000},
+		{1, 1000, 100000},
+		{1, 10000, 1000},
+		{1, 10000, 10000},
+		{1, 10000, 100000},
+		{1, 100000, 1000},
+		{1, 100000, 10000},
+		{1, 100000, 100000},
+		{1, 1000000, 1000},
+		{1, 1000000, 10000},
+		{1, 1000000, 100000},
 	};
 	
 	random_device rd;
@@ -140,19 +178,19 @@ int main()
 
 	for (const Test& test : tests)
 	{
-		List<int> list;
-		normal_distribution<> dis(test.mean, test.stddev);
+		HashSet<int, 7919> set;
+		uniform_int_distribution<> dis(test.a, test.b);
 
 		high_resolution_clock::time_point t1 = high_resolution_clock::now();
 		for (int i = 0; i < test.n; ++i)
 		{
 			const int t = round(dis(g));
-			if (!list.contains(t))
-				list.prepend(t);
+			if (!set.contains(t))
+				set.add(t);
 		}
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
 		auto duration = duration_cast<microseconds>( t2 - t1 ).count();
-		cout << test.stddev << "," << test.n << "," << duration << endl;
+		cout << test.b << "," << test.n << "," << duration << endl;
 	}
 	return 0;
 }
